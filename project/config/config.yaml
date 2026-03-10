@@ -1,0 +1,62 @@
+app:
+  timezone: "America/New_York"
+  poll_interval_minutes: 15
+  anomaly_threshold_pct: 50
+
+database:
+  driver: "ODBC Driver 17 for SQL Server"
+  server: "prd_162.sql.caresource.corp"
+  database: "Gdbrepo"
+  trusted_connection: true
+  query: |
+    SELECT
+      DISTINCT t1.transmissionfilename,
+      t1.interchangecontrolnumber,
+      COUNT(t1.encounterid) AS Number,
+      CONVERT(date, GETDATE(), 10) AS SubmissionDate,
+      t2.documentpurpose,
+      SUM(t2.totalpaidamount) AS TotalPaidAmount
+    FROM ehcpencounter t1
+    LEFT JOIN rrmencounter t2
+      ON t1.encounterid = t2.trackingidentifier
+    WHERE t1.transmissionfilename LIKE '0003%'
+    GROUP BY
+      t1.transmissionfilename,
+      t1.interchangecontrolnumber,
+      t2.documentpurpose;
+
+excel:
+  workbook_path: "C:/OH_MCD/ODM Submissions Counts 2026.xlsx"
+  worksheet_prefix: "Submission"
+
+vendors:
+  roots:
+    Versant: "//day04/plans/Claims-Encounter/Private/Vendor Reports/Versant/Attestation/Ohio"
+    DentaQuest: "//day04/plans/Claims-Encounter/Private/Vendor Reports/DentaQuest/Attestation/Ohio"
+  allowed_extensions: [".xlsx", ".xls", ".csv", ".txt", ".pdf"]
+
+email:
+  smtp_server: "smtp.caresource.corp"
+  smtp_port: 25
+  sender: "oh-mcd-automation@caresource.corp"
+  recipients:
+    - "business-team@caresource.corp"
+  subject: "OH MCD Submission Report"
+
+schedule:
+  weekly_runs:
+    - day: "sunday"
+      time: "19:00"
+    - day: "monday"
+      time: "16:00"
+    - day: "tuesday"
+      time: "19:00"
+    - day: "wednesday"
+      time: "19:00"
+
+state:
+  state_file: "project/logs/automation_state.json"
+
+logging:
+  log_file: "project/logs/automation.log"
+  level: "INFO"
